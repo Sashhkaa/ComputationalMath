@@ -150,33 +150,22 @@ def main():
     x_np = np.linalg.solve(A, F)
     print("x by np = ", x_np)
 
-
-    print("tau=0.1")
     x = simple_iteration(A, F)
     print("x by iteration with tau = 0,1 = ", x)
     print("norma = ", norma(x - x_np))
 
-    print("\n")
-
-    print("Using numpy to find eigvals to find tau_opt")
-
     eigvals = np.linalg.eigvals(A)
     tau = 2/(abs(max(eigvals)) +  abs(min(eigvals)))
     print("tau_opt = ", tau)
-    print("Solved with tau=", tau)
+
     x = simple_iteration(A, F, tau)
     print("norma = ", norma(x - x_ideal))
-
-    print("\n")
-
-    print("Using Gershgorin method and Krylov method to find eigenvalues to count tau_optimal")
 
     g_approx = Gershgorin_eig_val_approx(A)
     eigvals = krylov_method(A)
 
     tau = 2/(abs(max(eigvals)) +  abs(min(eigvals)))
     print("tau_opt = ", tau)
-    print("Solved with tau=", tau)
     x = simple_iteration(A, F, tau)
     print("x = ", x)
     print("norma = ", norma(x - x_ideal))
