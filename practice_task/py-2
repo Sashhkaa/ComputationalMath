@@ -1,0 +1,188 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+
+EPSILON = 1e-6
+
+def diff(f, x, n, delta = 0.001):
+    sum = 0
+    for k in range(n + 1):
+        sum += math.comb(n, k) * f(x + k * delta) * ((-1)**(k+1))
+    sum = sum / (delta**n)
+    return sum
+
+def test():
+    A = np.zeros((6, 6))
+    f = [0] * len(A)
+    for i in range(len(A)):
+        A[i][i] = 2 + ((i - 1) / len(A)) ** 2
+
+        if i == 0:
+            A[i][i + 1] = -1
+        elif i == (len(A) - 1):
+            A[i][i - 1] = -1
+        else:
+            A[i][i + 1] = -1
+            A[i][i - 1] = -1
+
+        A[0][len(A) - 1] = -1
+        A[len(A) - 1][0] = -1
+
+    for i in range(6):
+        f[i] = (1 + (len(A)**2) * np.sin(np.pi/len(A))) * \
+            np.sin((2 * np.pi * (i - 1)) / len(A))
+
+    return A, f
+
+
+def norma(arr):
+    sum = 0
+    for i in range(len(arr)):
+        sum += arr[i] ** 2
+    return (np.sqrt(sum))
+
+def iteration_solve(A, F, tau = 0.1, criteria=EPSILON):
+    x_np = np.linalg.solve(A, F)
+    n = len(A)
+
+    x0 = np.array([.0] * n)
+    delta = 0
+    it = 0
+
+    iteration_arr = []
+    norma_arr = []
+
+    while (True):
+        x = np.matmul((np.eye() - np.dot(tau, A)), x0) + np.dot(tau, F)
+        delta = norma(x - x0)
+        x0 = x
+        it += 1
+
+        iteration_arr.append(it)
+        norma_arr.append(norma(x - x_ideal))
+
+        if (delta < criteria):
+            break
+
+    draw_graph(iteration_arr, norma_arr)
+
+    return x0
+
+
+def Gershgorin_eig_val_approx(A):
+    N = len(A)
+
+    val_approx = []
+
+    for i in range(N):
+        sum = 0
+        for k in range(N):
+            if (k != i):
+                sum += A[i][k]
+        val_approx.append((A[i][i], sum))
+    return val_approx
+
+
+def count_roots(poly, x0_arr):
+    N = len(poly) - 1
+    x_arr = []
+
+    f = lambda x : np.polyval(poly, x)
+    f_diff = lambda x : diff(f, x, 1)
+    for i in range(N):
+        x_arr.append(newton(f, f_diff, x0_arr[i]))
+
+        poly = np.polydiv(poly, [1, -x_arr[i]])[0]
+
+        f = lambda x : np.polyval(poly, x)
+        f_diff = lambda x : diff(f, x, 1)
+
+    return x_arr
+
+    
+
+def newton(f, f_prime, x0=0, eps=EPSILON, kmax=1000000):
+    x, x_prev, i = x0, x0 + 2 * eps, 0
+
+    while abs(x - x_prev) >= eps and i < kmax:
+        x, x_prev, i = x - f(x) / f_prime(x), x, i + 1
+
+    return x
+
+
+def krylov_method(A):
+    poly = []
+    matrix = []
+
+    y0 = np.array([1, 0, 0, 0, 0, 0])
+    
+    matrix.append(y0)
+    for i in range(n):
+        y1 = np.matmul(A, y0)
+        
+        matrix.insert(0, y1)
+        y0 = y1
+
+    y0 = np.matmul(A, y0)
+
+    matrix = np.transpose(matrix)
+    koef = np.linalg.solve(matrix, y0)
+
+    koef = -koef
+    koef = koef.tolist()
+    koef.insert(0, 1.0)
+
+
+    return (count_roots(koef, [1, 1, 1, 1, 1, 1]))
+
+
+def draw_graph(values, iterations):
+    plt.plot(iterations, values)
+    plt.xlabel("number")
+    plt.ylabel("mistake")
+    plt.semilogy()
+    plt.show()
+
+
+def main():
+    A, F = test()
+
+    x_np = np.linalg.solve(A, F)
+    print("x by np = ", x_np)
+
+
+    print("tau=0.1")
+    x = simple_iteration(A, F)
+    print("x by iteration with tau = 0,1 = ", x)
+    print("norma = ", norma(x - x_np))
+
+    print("\n")
+
+    print("Using numpy to find eigvals to find tau_opt")
+
+    eigvals = np.linalg.eigvals(A)
+    tau = 2/(abs(max(eigvals)) +  abs(min(eigvals)))
+    print("tau_opt = ", tau)
+    print("Solved with tau=", tau)
+    x = simple_iteration(A, F, tau)
+    print("norma = ", norma(x - x_ideal))
+
+    print("\n")
+
+    print("Using Gershgorin method and Krylov method to find eigenvalues to count tau_optimal")
+
+    g_approx = Gershgorin_eig_val_approx(A)
+    eigvals = krylov_method(A)
+
+    tau = 2/(abs(max(eigvals)) +  abs(min(eigvals)))
+    print("tau_opt = ", tau)
+    print("Solved with tau=", tau)
+    x = simple_iteration(A, F, tau)
+    print("x = ", x)
+    print("norma = ", norma(x - x_ideal))
+
+
+
+
+if (__name__ == "__main__"):
+    main()
